@@ -60,14 +60,10 @@ Shader "Custom/ShellFurShader"
             Tags { "LightMode"="UniversalForward" }
 
             HLSLPROGRAM
-            // =================================================================
             // 인스턴싱 및 렌더링 레이어
-            // =================================================================
             #pragma multi_compile_instancing
 
-            // =================================================================
-            // 조명 및 그림자 (Forward+ 완벽 대응)
-            // =================================================================
+            // 조명 및 그림자
             #pragma multi_compile _ _FORWARD_PLUS
             #pragma target 4.5
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
@@ -84,17 +80,14 @@ Shader "Custom/ShellFurShader"
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _ENVIRONMENTREFLECTIONS_OFF
             
-            
-
-            // =================================================================
+        
             // 포그 및 기본 컴파일
-            // =================================================================
             #pragma multi_compile_fog
             
             #pragma vertex vert
             #pragma fragment frag
 
-            // URP 기본 라이브러리 적극 활용 (수학, 라이팅, 변환 함수들)
+            // URP 기본 라이브러리
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RealtimeLights.hlsl"
@@ -162,7 +155,6 @@ Shader "Custom/ShellFurShader"
 
             // 변수 선언 (SRP 배처를 깨지 않기 위해 CBUFFER 사용)
             sampler2D _BaseMap;
-
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
                 half4  _BaseColor;
@@ -279,7 +271,7 @@ Shader "Custom/ShellFurShader"
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = texColor.rgb;
                 surfaceData.alpha = texColor.a;
-                surfaceData.metallic = 0.0; // 필요하다면 _Metallic 변수 추가 후 연결
+                surfaceData.metallic = 0.0; 
                 surfaceData.smoothness = _Smoothness;
                 float occlusion = lerp(_Occlusion, 1.0, input.layerRatio);
                 surfaceData.occlusion = lerp(_Occlusion, 1.0, input.layerRatio);
@@ -297,7 +289,6 @@ Shader "Custom/ShellFurShader"
                     half detailMask = SAMPLE_TEXTURE2D_LOD(_DetailMask, sampler_DetailMask, uv, 0).a;
                     half3 detailAlbedo = SAMPLE_TEXTURE2D_LOD(_DetailAlbedoMap, sampler_DetailAlbedoMap, detailUV, 0).rgb;
                     
-                    // URP 표준 디테일 맵 합성 방식 (2.0을 곱해서 밝기를 유지하며 섞음)
                     surfaceData.albedo = lerp(texColor.rgb, texColor.rgb * detailAlbedo * 2.0, detailMask);
                 #else
                     surfaceData.albedo = texColor.rgb;
@@ -319,7 +310,6 @@ Shader "Custom/ShellFurShader"
                 inputData.positionWS = input.positionWS;
 
                 #if defined(_NORMALMAP)
-                    // 베이스 노말 맵 읽기
                     half3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D_LOD(_BumpMap, sampler_BumpMap, uv, 0), 1.0);
                     
                     // 디테일 노말 맵 섞기
@@ -329,11 +319,9 @@ Shader "Custom/ShellFurShader"
                         normalTS = lerp(normalTS, BlendNormalRNM(normalTS, detailNormalTS), detailMask);
                     #endif
 
-                    // TBN 매트릭스를 활용해 평면 좌표(Tangent)를 월드 좌표(World)로 변환
                     inputData.normalWS = TransformTangentToWorld(normalTS, half3x3(input.tangentWS, input.bitangentWS, input.normalWS));
                     inputData.normalWS = normalize(inputData.normalWS);
                 #else
-                    // 노말 맵을 안 쓸 때는 버텍스에서 넘어온 기본 노말 사용
                     inputData.normalWS = normalize(input.normalWS);
                 #endif
                 
@@ -344,7 +332,6 @@ Shader "Custom/ShellFurShader"
                 inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.bakedGI = SampleSH(inputData.normalWS);
                 
-                // 빛 반사율(BRDF) 계산을 위한 내부 구조체 초기화
                 BRDFData brdfData;
                 InitializeBRDFData(surfaceData.albedo, surfaceData.metallic, half3(0,0,0), surfaceData.smoothness, surfaceData.alpha, brdfData);
 
